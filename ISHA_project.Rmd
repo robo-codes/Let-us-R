@@ -1,0 +1,265 @@
+---
+title: "Project"
+author: "Isha Dhaduk"
+date: "2023-03-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R and RStudio Versions
+
+R version 4.2.2 (2022-10-31 ucrt)
+RStudio 2022.12.0+353 "Elsbeth Geranium" Release (7d165dcfc1b6d300eb247738db2c7076234f6ef0, 2022-12-03) for Windows,
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) RStudio/2022.12.0+353 Chrome/102.0.5005.167 Electron/19.1.3 Safari/537.36
+
+
+```{r message=FALSE, warning=FALSE}
+library("tidyverse")
+library("ggplot2")
+library("dplyr")
+library("gridExtra")
+library("wordcloud")
+```
+
+
+```{r}
+Bal_salary <- read.csv("C:\\Users\\solan\\OneDrive\\Desktop\\Work\\St.Clair_sem_1\\DAB501_basic_stats\\DAB501\\baltimore_salary.csv", header=TRUE, stringsAsFactors=FALSE)
+head(Bal_salary)
+```
+
+##### Overview of the data
+
+```{r}
+str(Bal_salary)
+```
+
+```{r}
+sum(is.null(Bal_salary$grossPay))
+sum(is.na(Bal_salary$grossPay))
+```
+### 1) Clean the data for any outlier/extreme values using the filtering technique and create an appropriate plot to visualize the distribution of this variable.
+
+#### Continuous Variable: grossPay
+
+#### Cheking the outliers in variable: grossPay
+```{r}
+# Create the density plot
+plot1 <- ggplot(Bal_salary, aes(x = grossPay)) + 
+  geom_density(color = "blue", fill = "lightblue", alpha = 0.5) + 
+  labs(x = "Gross Pay", y = "Density", title = "Density of Gross Pay") +
+  theme_classic() +
+  theme(plot.title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12))
+
+# Create the boxplot
+plot2 <- ggplot(Bal_salary, aes(y = grossPay)) +
+  geom_boxplot(color = "blue", fill = "lightblue", alpha = 0.5) +
+  labs(y = "Gross Pay", title = "Boxplot of Groos Pay") +
+  theme_classic() +
+  theme(plot.title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12))
+
+# Combine the two plots
+grid.arrange(plot1, plot2, ncol = 2)
+
+
+```
+
+##### From the above given chart we can clearly say that this variable contains outliers and also as it is pay I am considering the value near to 0 as outliers as well.
+
+### 2) Continued from #1, for any outliers present in the data. Specify the criteria used to identify them and provide a logical explanation for how you handled them.
+
+##### Below are the basic statastics of the variable.
+```{r}
+min(Bal_salary$grossPay)
+max(Bal_salary$grossPay)
+mean(Bal_salary$grossPay)
+median(Bal_salary$grossPay)
+mode(Bal_salary$grossPay)
+table_mode_salary <- table(Bal_salary$grossPay)
+mode_salary <- names(table_mode_salary)[which.max(table_mode_salary)]
+mode_salary
+mad(Bal_salary$grossPay)
+sd(Bal_salary$grossPay)
+IQR(Bal_salary$grossPay)
+```
+##### For this variable we will be taking mean and standerd deviation to specify the criterian for the outlier selection as these criterions are able to properly describe the data as whole. Below is the filter fuction where we will filter the gross Pay and new data frame will be created.
+
+##### We have used the criteria for the included gross pay as mean - 1.5 * standard deviation to mean + 2.25 * standard deviation. because majority of data is situated in this range. 
+```{r}
+filtered_salary <- Bal_salary %>% 
+  filter(grossPay > mean(grossPay) - 1.5*sd(grossPay) & grossPay < mean(grossPay) + 2.25*sd(grossPay))
+
+filtered_salary
+```
+### 3) Describe the shape of the data. 
+
+#### The data is almost simmetically distribute after the filteration of the variable. That we can see in below shown histograms.
+```{r}
+p1 = ggplot(filtered_salary, aes(x = grossPay)) + geom_histogram()
+p2 = p1 + scale_x_log10()
+p3 = p1 + scale_x_sqrt()
+
+grid.arrange(p1, p2, p3, ncol = 1)
+```
+
+### 4) 4. Based on your answer to the previous question, decide if it is appropriate to apply a transformation to your data. If no, explain why not. If yes, name the transformation applied and visualize the transformed distribution.
+
+#### We can clearly see that we do not need to transform data to any other format as normal distribution is already existing for our data. But even if we provide any transformation the data becomes sckewed.
+
+```{r}
+# Create the density plot
+plot1 <- ggplot(filtered_salary, aes(x = grossPay)) + 
+  geom_density(color = "blue", fill = "lightblue", alpha = 0.5) + 
+  labs(x = "Gross Pay", y = "Density", title = "Density of Gross Pay") +
+  theme_classic() +
+  theme(plot.title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12))
+
+# Create the boxplot
+plot2 <- ggplot(filtered_salary, aes(y = grossPay)) +
+  geom_boxplot(color = "blue", fill = "lightblue", alpha = 0.5) +
+  labs(y = "Gross Pay", title = "Boxplot of Groos Pay") +
+  theme_classic() +
+  theme(plot.title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12))
+
+# Combine the two plots
+grid.arrange(plot1, plot2, ncol = 2)
+
+
+```
+
+```{r}
+sum(is.null(Bal_salary$agencyID))
+sum(is.na(Bal_salary$agencyID))
+```
+### 5) Choose and calculate an appropriate measure of central tendency (Mean, Median, and Mode). 
+
+#### Filtered salary's satastics:
+```{r}
+mean(filtered_salary$grossPay)
+median(filtered_salary$grossPay)
+mode(filtered_salary$grossPay)
+table_mode_filtered_salary <- table(filtered_salary$grossPay)
+mode_filtered_salary <- names(table_mode_filtered_salary)[which.max(table_mode_filtered_salary)]
+mode_filtered_salary
+```
+##### As we can see from above values mean is the central most value for our data over mode and median. Thus, we will go with mean.
+
+### 6) Explain why you chose this as your measure of central tendency. Provide supporting evidence for your choice.
+
+#### As mentioned above mean is the central most value over median and mode. 
+
+### 7)  Choose and calculate a measure of spread (SD, MAD or IQR) that is appropriate for your chosen measure of central tendency. Explain why you chose this as your measure of spread. 
+
+```{r}
+sd(filtered_salary$grossPay)
+IQR(filtered_salary$grossPay)
+mad(filtered_salary$grossPay)
+```
+
+#### As we have chosen mean as our measure of central tendency it is advisable to select SD as our measure of spread. Beacuse SD (Standard Deviation) is a measure of how spread out the data is from the mean. It measures the average distance of each data point from the mean. Also, it is the least spead which means data points are more near to mean than others.
+
+
+### 1) Create an appropriate plot to visualize the distribution of counts for this variable.
+#### Catagorical Variable: agencyID
+
+```{r fig.height=10, fig.width=10}
+ggplot(filtered_salary, aes(y = agencyID)) + 
+  geom_bar(color = "blue", fill = "lightblue", alpha = 0.5) + 
+  labs(x = "Count", y = "Agency ID", title = "Distribution of Agency ID") +
+  theme_classic() +
+  theme(plot.title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        axis.text.x = element_text(angle = 90, vjust = 0.5))
+```
+
+### 2) Create an appropriate plot to visualize the distribution of proportions for this variable.
+
+```{r fig.height=7, fig.width=10}
+# Create a table of words by agency ID
+agency_words <- lapply(split(filtered_salary$agencyID, filtered_salary$agencyID), function(x) paste(x, collapse = " "))
+names(agency_words) <- NULL
+
+# Create word frequency table
+word_freq <- table(unlist(strsplit(tolower(unlist(agency_words)), "\\W+")))
+
+# Plot word cloud
+wordcloud(names(word_freq), freq = word_freq, scale = c(20, 1), min.freq = 1, random.order = FALSE, colors = brewer.pal(8, "Dark2"), 
+          max.words = 100, random.color = TRUE, rot.per = 0.3, 
+          font = 3, family = "serif", 
+          main = "Agency ID Word Cloud",
+          col.main = "steelblue")
+title("Agency ID Word Cloud", cex.main = 1.5)
+```
+
+### 3) Discuss any unusual observations for this variable? 
+#### The plotted graphs above suggests that the distribution of the variable is highly uneven. The Agency 99, Agency 64 and Agency 50 has the most of the employees under them. They are dominating the job market.
+
+### 4) Discuss if there are too few/too many unique values?
+#### Yes, there are so many unique values(over 50 agencies are there).
+
+
+## Bivariate analysis
+
+### 1) Create an appropriate plot to visualize the relationship between the two variables.
+#### Two continuous Variables
+```{r}
+ggplot(filtered_salary, aes(x = annualSalary, y = grossPay, fill = ..level..)) +
+  stat_density_2d(geom = "polygon") +
+  scale_fill_gradient(low = "#EDF8FB", high = "#08306B") +
+  labs(x = "Annual Salary ($)", y = "Gross Pay ($)", title = "Contour Plot of Annual Salary and Gross Pay") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 18, hjust = 0.5),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.position = "right",
+        panel.grid.major = element_line(color = "#EAEAEA"))
+
+```
+
+#### One Continuous and One Catagorical:
+```{r}
+# Select top 20 agency IDs with highest percentage of annual salary
+top_agencies <- filtered_salary %>%
+  group_by(agencyID) %>%
+  summarise(total_salary = sum(annualSalary)) %>%
+  mutate(percentage_salary = total_salary/sum(total_salary)*100) %>%
+  arrange(desc(percentage_salary)) %>%
+  slice(1:20)
+
+# Create polar bar chart with values added
+ggplot(top_agencies, aes(x = agencyID, y = percentage_salary, fill = agencyID)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_text(aes(label = paste0(round(percentage_salary,2),"%")), 
+            position = position_stack(vjust = 0.5), 
+            color = "black", size = 3, angle = 90) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  labs(title = "Top 20 Agency IDs with Highest Percentage of Annual Salary", 
+       x = "Agency ID", y = "Percentage of Annual Salary")
+
+
+
+```
+
+### 2) Describe the form, direction, and strength of the observed relationship.
+#### For both continuous variable the data is in linear relationhship where with increase in Annual Salary the Gross Pay is also increasing. Thus, it is a positively directed relationship. Furthermore, Both variables are highly tight (with correlation coefficient of 0.86) which eachother as our density plot is shoving. On the other hand, for the agency ID vs. Annual Salary, we can say that there is no perticular relationship to be found between this two variables.
+
+```{r}
+cor(filtered_salary$annualSalary, filtered_salary$grossPay)
+```
+### 3)  Explain what this relationship means in the context of the data.
+#### This relationship means that the employees who have more gross income are likely to have more salary. And for the Agency ID vs Annual Salary it is clear that most number of employees are there in Agency 99, Agency 64 and Agency 50 (over 50% of the data).
+
+### 4) Describe the variability that you observe in the plot and how that corresponds to the strength you calculated in #2 above.
+#### The correlation coefficient of 0.86 suggests that there exists a strong positive linear correlation between the annual salary and gross pay variables. This implies that an increase in annual salary results in an increase in gross pay. The variability in the plot of annual salary and gross pay corresponds to the dispersion of the data points around the best-fit line. Greater variability indicates a weaker linear relationship, but as the correlation coefficient is high, the variability is not too significant and the linear relationship is relatively strong.

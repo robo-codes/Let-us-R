@@ -1,0 +1,968 @@
+---
+title: "Hotel Reservation step-2"
+author: "Group 9,<br> Section 4,<br> Ruturajsinh Solanki, Kunal Vaghela, Satya Akhil Govvala"
+date: "2023-03-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Acknowledgement
+
+We, Ruturajsinh Solanki, Kunal Vaghela, and Satya Akhil Govvala, hereby
+state that we have not communicated with or gained information in any way from any person
+or resource that would violate the College’s academic integrity policies, and that all work
+presented is our own. In addition, we also agree not to share our work in any way, before or
+after submission, that would violate the College’s academic integrity policies. 
+
+## R and RStudio Versions
+
+R version 4.2.2 (2022-10-31 ucrt)
+RStudio 2022.12.0+353 "Elsbeth Geranium" Release (7d165dcfc1b6d300eb247738db2c7076234f6ef0, 2022-12-03) for Windows,
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) RStudio/2022.12.0+353 Chrome/102.0.5005.167 Electron/19.1.3 Safari/537.36
+
+## R Package Used
+
+- tidyverse (1.3.2)
+- ggplot2 (3.4.1)
+- plotly (4.10.1)
+- gridExtra (2.3)
+- patchwork (1.1.2)
+- viridis (0.6.2)
+- wordcloud (2.6)
+
+```{r message=FALSE, warning=FALSE}
+library("tidyverse")
+library("ggplot2")
+library("plotly")
+library("gridExtra")
+library("patchwork")
+library("viridis")
+library("wordcloud")
+```
+
+# The Data
+This data is about how booking hotel rooms have been greatly transformed by online reservation channels, and this has also impacted how customers behave. A considerable amount of hotel bookings are cancelled, which is not beneficial for hotel.
+
+## Data Description
+
+The dataset contains different attributes of customers' reservation details. It contains 36275 observations of 19 variables. All of them are non-NULL.
+
+### Data Dictionary
+
+The detailed data dictionary is given below.
+
+-	Booking_ID: unique identifier of each booking
+-	no_of_adults: Number of adults
+-	no_of_children: Number of Children
+-	no_of_weekend_nights: Number of weekend nights (Saturday or Sunday) the guest stayed or booked to stay at the hotel
+-	no_of_week_nights: Number of weeknights (Monday to Friday) the guest stayed or booked to stay at the hotel
+-	type_of_meal_plan: Type of meal plan booked by the customer:
+-	required_car_parking_space: Does the customer require a car parking space? (0 - No, 1- Yes)
+-	room_type_reserved: Type of room reserved by the customer. The values are ciphered (encoded) by INN Hotels.
+-	lead_time: Number of days between the date of booking and the arrival date
+-	arrival_year: Year of arrival date
+-	arrival_month: Month of arrival date
+-	arrival_date: Date of the month
+-	market_segment_type: Market segment designation.
+-	repeated_guest: Is the customer a repeated guest? (0 - No, 1- Yes)
+-	no_of_previous_cancellations: Number of previous bookings that were canceled by the customer prior to the current booking
+-	no_of_previous_bookings_not_canceled: Number of previous bookings not canceled by the customer prior to the current booking
+-	avg_price_per_room: Average price per day of the reservation; prices of the rooms are dynamic. (in euros)
+-	no_of_special_requests: Total number of special requests made by the customer (e.g. high floor, view from the room, etc)
+-	booking_status: Flag indicating if the booking was canceled or not.
+
+[Link to Dataset](https://drive.google.com/drive/folders/1fBgiXOAQ1AiA3KospgYRj2P5LY6r4DGV)
+
+```{r}
+Hotel_Reservations <- read.csv("C:\\Users\\solan\\OneDrive\\Desktop\\Work\\St.Clair_sem_1\\DAB501_basic_stats\\DAB501\\Project\\Hotel_Reservations.csv", header=TRUE, stringsAsFactors=FALSE)
+head(Hotel_Reservations)
+```
+
+##### Overview of the data
+
+```{r}
+str(Hotel_Reservations)
+```
+
+```{r}
+sum(is.null(Hotel_Reservations))
+sum(is.na(Hotel_Reservations))
+```
+
+## Univariate Analysis: Continuous Variable(avg_price_per_room)
+
+
+### 1) Clean the data for any outlier/extreme values using the filtering technique and create an appropriate plot to visualize the distribution of this variable.
+
+##### First we will check for outliers, if they exists in our dataset or not. Using histogram and boxplot on avg_price_per_room variable.
+
+```{r fig.height=5, fig.width=10}
+# Create the histogram plot
+plot1 <- ggplot(Hotel_Reservations, aes(x = avg_price_per_room)) + 
+  geom_histogram(binwidth = 1, color = "darkblue", fill = "lightblue") + 
+  labs(x = "Average Price per Room", y = "Frequency", title = "Distribution of Average Price per Room") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Create the boxplot
+plot2 <- ggplot(Hotel_Reservations, aes(y = avg_price_per_room)) +
+  geom_boxplot(color = "darkblue", fill = "lightblue") +
+  labs(y = "Average Price per Room", title = "Distribution of Average Price per Room (Boxplot)")+
+  scale_y_continuous(breaks = scales::breaks_width(50)) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Combine the two plots
+plot1 + plot2
+```
+
+##### It can be stated that there are extreme values at both beginng and ending of the dataset. Now we will remove outliers using filter function.
+
+### 2) Continued from #1, for any outliers present in the data. Specify the criteria used to identify them and provide a logical explanation for how you handled them.
+
+```{r}
+filtered_avg_price <- Hotel_Reservations %>% 
+  filter(avg_price_per_room > 25, avg_price_per_room <= 175)
+
+head(filtered_avg_price)
+```
+
+##### Here, we have used the subset of dataset where average price per room is greater than 25 and less than or equal to 200. The reason being both the charts from above. The histogram shows that the values after 200 are very less and also the value 200 is more than mean + 2.5 * SD which is quite far from the centroid of our data. On the other hand, it is clear from the boxplot that the values below 25 are outliers and most of them being 0. Thus, it is safe to remove these values.
+
+### 3) Describe the shape of the data.
+
+##### Before applying the transformation using filter function the data is right skewed which can be seen in below graphical representation.
+
+```{r fig.height=10, fig.width=10, warning=FALSE}
+# Create the base histogram plot
+base_plot <- ggplot(Hotel_Reservations, aes(x = avg_price_per_room, fill = ..count..)) +
+  geom_density(aes(y = ..count..), alpha = 0.1, fill = "blue", color = "black") +
+  labs(x = "Average Price per Room", y = "Count") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Create the log scale plot
+log_plot <- base_plot +
+  scale_x_log10() +
+  labs(title = "Logarithmic Scale")
+
+# Create the square root scale plot
+sqrt_plot <- base_plot +
+  scale_x_sqrt() +
+  labs(title = "Square Root Scale")
+
+# Arrange the plots in a grid
+grid.arrange(base_plot, log_plot, sqrt_plot, ncol = 1)
+```
+
+### 4) Based on your answer to the previous question, decide if it is appropriate to apply a transformation to your data. If no, explain why not. If yes, name the transformation applied and visualize the transformed distribution.
+
+##### **YES**, transformation is needed because data is right skewed. Below is the data after applying the filter and to select if transformation is needed even after the filteration or not.
+
+```{r fig.height=10, fig.width=10, warning=FALSE}
+# Create the base histogram plot
+base_plot <- ggplot(filtered_avg_price, aes(x = avg_price_per_room, fill = ..count..)) +
+  geom_density(aes(y = ..count..), alpha = 0.1, fill = "darkblue", color = "black") +
+  labs(x = "Average Price per Room", y = "Count") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Create the log scale plot
+log_plot <- base_plot +
+  scale_x_log10() +
+  labs(title = "Logarithmic Scale")
+
+# Create the square root scale plot
+sqrt_plot <- base_plot +
+  scale_x_sqrt() +
+  labs(title = "Square Root Scale")
+
+# Arrange the plots in a grid
+grid.arrange(base_plot, log_plot, sqrt_plot, ncol = 1)
+```
+
+##### After applying the filter the distribution is more balanced from earlier, but it is clear from above histograms that **Simple distribution** is more normal than the actual and log distribution.
+
+#### Distribution of data after applying filter
+```{r fig.height=5, fig.width=10}
+# Create the histogram plot
+plot1 <- ggplot(filtered_avg_price, aes(x = avg_price_per_room)) + 
+  geom_histogram(binwidth = 1, color = "darkblue", fill = "lightblue") + 
+  labs(x = "Average Price per Room", y = "Frequency", title = "Distribution of Average Price per Room") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Create the boxplot
+plot2 <- ggplot(filtered_avg_price, aes(y = avg_price_per_room)) +
+  geom_boxplot(color = "darkblue", fill = "lightblue") +
+  labs(y = "Average Price per Room", title = "Distribution of Average Price per Room (Boxplot)")+
+  scale_y_continuous(breaks = scales::breaks_width(50)) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Combine the two plots
+plot1 + plot2
+```
+
+### 5) Choose and calculate an appropriate measure of central tendency (Mean, Median, and Mode).
+
+```{r}
+mean(filtered_avg_price$avg_price_per_room)
+median(filtered_avg_price$avg_price_per_room)
+mode(filtered_avg_price$avg_price_per_room)
+table_mode_price <- table(filtered_avg_price$avg_price_per_room)
+mode_price <- names(table_mode_price)[which.max(table_mode_price)]
+mode_price
+```
+
+##### we will choose **Mean** as our central tendency measure.
+
+### 6) Explain why you chose this as your measure of central tendency. Provide supporting evidence for your choice. 
+
+##### As we saw earlier that the dataset is right skewed, this means our mean is greater than the median, which is greater than the mode. and as we can see in above graphs that center point of our data destribution is also around 100 and mean being 101.7 and median being 99 make them near to our centroid but as our distribution seems normal the mean is the most reliable choice.
+
+
+### 7) Choose and calculate a measure of spread (SD, MAD or IQR) that is appropriate for your chosen measure of central tendency. Explain why you chose this as your measure of spread.
+
+```{r}
+mad(filtered_avg_price$avg_price_per_room)
+sd(filtered_avg_price$avg_price_per_room)
+IQR(filtered_avg_price$avg_price_per_room)
+```
+
+##### Since we have opted for the mean as our measure of central tendency, it is recommended to use **SD (Standard Deviation)** as our measure of spread. This is because SD indicates how much the data varies from the mean, by measuring the average distance of each data point from the mean. Additionally, it is the smallest measure of spread, indicating that data points are generally closer to the mean compared to other measures.
+
+
+## Univariate Analysis: Catagorical Variable(room_type_reserved)
+
+### 1) Create an appropriate plot to visualize the distribution of counts for this variable.
+
+```{r fig.height=5, fig.width=10}
+ggplot(filtered_avg_price, aes(x = room_type_reserved, fill = room_type_reserved)) +
+  geom_bar(alpha = 0.8) +
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, angle = 270) +
+  labs(title = "Distribution of Counts",
+       x = "Room Type Reserved",
+       y = "Reservation Count") +
+  scale_fill_discrete(name = "Room Type Reserved", labels = c("Room Type 1", "Room Type 2", "Room Type 3", "Room Type 4", "Room Type 5", "Room Type 6", "Room Type 7"))+
+  scale_color_discrete(name = "Room Type Reserved", labels = c("Room Type 1", "Room Type 2", "Room Type 3", "Room Type 4", "Room Type 5", "Room Type 6", "Room Type 7"))+
+  scale_x_discrete(labels=c("Room_Type 1" = "Room Type 1", "Room_Type 2" = "Room Type 2", "Room_Type 3" = "Room Type 3", "Room_Type 4" = "Room Type 4", "Room_Type 5" = "Room Type 5", "Room_Type 6" = "Room Type 6", "Room_Type 7" = "Room Type 7" )) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10)) +
+  coord_flip()
+
+```
+
+### 2) Create an appropriate plot to visualize the distribution of proportions for this variable.
+
+```{r fig.height=5, fig.width=10, warning=FALSE}
+# Create a table of counts by room type
+room_counts <- table(filtered_avg_price$room_type_reserved)
+
+# Calculate the proportion of each room type
+room_props <- prop.table(room_counts)
+
+# Create a data frame of the proportions
+room_props_df <- data.frame(
+  room_type = names(room_props),
+  proportion = room_props
+)
+
+# Sort the data frame by proportion in increasing order
+room_props_df <- room_props_df[order(room_props_df$proportion.Freq),]
+
+# Create a bar chart of room proportions
+ggplot(room_props_df, aes(x = proportion.Var1, y = proportion.Freq, fill = room_type)) +
+  geom_bar(stat = "identity", color = "black", width = 0.7) +
+  labs(title = "Proportion of Room Types",
+       x = "Room Types",
+       y = "overall Booking Proportion") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  scale_fill_discrete(name = "Room Type Reserved", labels = c("Room Type 1", "Room Type 2", "Room Type 3", "Room Type 4", "Room Type 5", "Room Type 6", "Room Type 7"))+
+  scale_color_discrete(name = "Room Type Reserved", labels = c("Room Type 1", "Room Type 2", "Room Type 3", "Room Type 4", "Room Type 5", "Room Type 6", "Room Type 7"))+
+  scale_x_discrete(labels=c("Room_Type 1" = "Room Type 1", "Room_Type 2" = "Room Type 2", "Room_Type 3" = "Room Type 3", "Room_Type 4" = "Room Type 4", "Room_Type 5" = "Room Type 5", "Room_Type 6" = "Room Type 6", "Room_Type 7" = "Room Type 7" ))+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = c(0.95, 0.95),
+        legend.justification = c("right", "top"),
+        legend.title.align = 0.5,
+        legend.text.align = 0.5,
+        legend.margin = margin(5, 5, 5, 5))
+```
+
+### 3) Discuss any unusual observations for this variable?
+
+##### It is clear from above charts that most of the customers are booking room type 1 and room type 4 is also being booked more than other types. But the room type 3 and 7 are the least booked with bearly booked values.
+
+
+### 4) Discuss if there are too few/too many unique values?
+
+##### No, there are enough unique values but distribution of the data is another thing.
+
+
+## Bivariate Analysis: both Continuous(avg_price_per_room, lead_time)
+
+### 1) Create an appropriate plot to visualize the relationship between the two variables.
+```{r fig.height=5, fig.width=10}
+# Set theme options
+theme_set(theme_bw(base_size = 18))
+
+# Create plot
+ggplot(filtered_avg_price, aes(x = avg_price_per_room, y = lead_time)) +
+  geom_point(color = "grey", size = 3, alpha = 0.5) +
+  geom_density_2d(color = "black", alpha = 1) +
+  labs(x = "Average Price per Room", y = "Lead Time (days)", title = "Scatter Plot of Average Price vs. Lead Time") +
+  theme(plot.title = element_text(hjust = 0.5, size = 24, face = "bold", margin = margin(b = 10)),
+        axis.title = element_text(size = 18, margin = margin(t = 10)),
+        axis.text = element_text(size = 14)) +
+  scale_x_continuous(breaks = seq(0, 500, by = 50)) +
+  scale_y_continuous(breaks = seq(0, 500, by = 50)) +
+  theme(panel.grid.major = element_line(color = "lightgray", linetype = "dotted"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color = "black", linewidth = 0.5),
+        legend.position = "none")
+
+```
+
+### 2) Describe the form, direction, and strength of the observed relationship.
+
+##### It is clear from the above chart that the data is nonlinear distributed and has very weak realtionship with each other in nagative direction as or correlation coefficient is -0.088.
+
+
+```{r}
+cor(filtered_avg_price$avg_price_per_room, filtered_avg_price$lead_time)
+```
+
+### 3) Explain what this relationship means in the context of the data.
+
+##### It can be said that this two variable does not have any relationship with eachother.
+
+### 4) Describe the variability that you observe in the plot and how that corresponds to the strength you calculated in #2 above.
+
+##### From the scatter plot, we can observe that there is a lot of variability in the data points, indicating that the relationship between the two continuous variables is weak. The points are scattered randomly throughout the plot, without any clear pattern or trend. The strength of the observed relationship, as calculated by the correlation coefficient, is also weak (-0.088), which confirms our observation that there is a weak relationship between the two variables. Therefore, the variability in the plot corresponds to the weak strength of the observed relationship.
+
+
+## Bivariate Analysis: one Continuous and one Catagorical (avg_price_per_room, room_type_reserved)
+
+### 1) Create an appropriate plot to visualize the relationship between the two variables.
+
+```{r fig.height=5, fig.width=10}
+# Filtering the most profitable rooms using average price per room
+top_room <- filtered_avg_price %>%
+  group_by(room_type_reserved) %>%
+  summarise(avg_price_per_room = sum(avg_price_per_room)) %>%
+  mutate(percentage_price = avg_price_per_room/sum(avg_price_per_room)*100) %>%
+  arrange(desc(percentage_price)) 
+
+# Create polar bar chart with values added
+ggplot(top_room, aes(x = room_type_reserved, y = percentage_price, fill = room_type_reserved)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_text(aes(label = paste0(round(percentage_price,2),"%")), 
+            position = position_stack(vjust = 0.9), 
+            color = "black", size = 5) +
+  scale_fill_discrete(name = "Room Type Reserved", labels = c("Room Type 1", "Room Type 2", "Room Type 3", "Room Type 4", "Room Type 5", "Room Type 6", "Room Type 7"))+
+   scale_color_discrete(name = "Room Type Reserved", labels = c("Room Type 1", "Room Type 2", "Room Type 3", "Room Type 4", "Room Type 5", "Room Type 6", "Room Type 7"))+
+  scale_x_discrete(labels=c("Room_Type 1" = "Room Type 1", "Room_Type 2" = "Room Type 2", "Room_Type 3" = "Room Type 3", "Room_Type 4" = "Room Type 4", "Room_Type 5" = "Room Type 5", "Room_Type 6" = "Room Type 6", "Room_Type 7" = "Room Type 7" ))+
+  scale_y_reverse() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = c(0.95, 0.5),
+        legend.justification = c("right", "top"),
+        legend.title.align = 0.5,
+        legend.text.align = 0.5,
+        legend.margin = margin(5, 5, 5, 5)) +
+  labs(title = "Top Room Types by Percentage of Average Price Per Room", 
+       x = "Room Type", y = "Percentage of Average Price Per Room")
+
+```
+
+### 2) Describe the form, direction, and strength of the observed relationship.
+
+##### As there is one catagorical variable we cannot say that it is increasing or not but we can tell from the data above graph is that room type 1 and room type 2 is has earned the most.
+
+### 3) Explain what this relationship means in the context of the data.
+
+##### The correaltion between these two variable is not possible to find as one is continuous and another is catagorical
+
+### 4) Describe the variability that you observe in the plot and how that corresponds to the strength you calculated in #2 above.
+
+##### It cannot be calculated without both being continuos.
+
+## Univariate Analysis: Continuous Variable(lead_time)
+
+### 1) Clean the data for any outlier/extreme values using the filtering technique and create an appropriate plot to visualize the distribution of this variable.
+
+##### First we will check for outliers, if they exists in our dataset or not. Using histogram and boxplot on lead_time variable.
+
+```{r fig.height=5, fig.width=10}
+# Create the histogram plot
+plot1 <- ggplot(Hotel_Reservations, aes(x = lead_time)) + 
+  geom_histogram(binwidth = 1, color = "black", fill = "pink") + 
+  labs(x = "Lead Time", y = "Frequency", title = "Distribution of Lead Time") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Create the boxplot
+plot2 <- ggplot(Hotel_Reservations, aes(x = "", y = lead_time)) +
+  geom_violin(color = "black", fill = "pink") +
+  labs(y = "Lead Time", title = "Distribution of Lead Time (Violin Plot)")+
+  scale_y_continuous(breaks = scales::breaks_width(50)) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Combine the two plots
+plot1 + plot2
+```
+
+##### It can be stated that there are extreme values at both beginng and ending of the dataset. Now we will remove outliers using filter function.
+
+### 2) Continued from #1, for any outliers present in the data. Specify the criteria used to identify them and provide a logical explanation for how you handled them.
+
+```{r}
+filtered_lead_time <- Hotel_Reservations %>% 
+  filter(lead_time >= 0 , lead_time <= 180)
+
+head(filtered_lead_time)
+```
+
+
+
+##### Here, we have used the subset of dataset where **Lead Time** is greater than or equal to 0 and less than or equal to 300. The reason being both the charts from above. The histogram shows that the values after 300 are very less and also the value 300 is more than mean + 3 * SD which is quite far from the centroid of our data. On the other hand, it is clear from the boxplot that there are outlier values at the beginning of the data as well but lead time is time for customer to show up after booking. Thus, those values are not outliers in our context.
+
+### 3) Describe the shape of the data.
+
+##### Before applying the transformation using filter function the data is right skewed which can be seen in below graphical representation.
+
+```{r fig.height=10, fig.width=10, warning=FALSE}
+# Create the base histogram plot
+base_plot <- ggplot(Hotel_Reservations, aes(x = lead_time, fill = ..count..)) +
+  geom_density(aes(y = ..count..), alpha = 0.3, fill = "red", color = "black") +
+  geom_histogram(fill = "red", color = "black", alpha = 0.1) +
+  labs(x = "Lead Time", y = "Count") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Create the log scale plot
+log_plot <- base_plot +
+  scale_x_log10() +
+  labs(title = "Logarithmic Scale")
+
+# Create the square root scale plot
+sqrt_plot <- base_plot +
+  scale_x_sqrt() +
+  labs(title = "Square Root Scale")
+
+# Arrange the plots in a grid
+grid.arrange(base_plot, log_plot, sqrt_plot, ncol = 1)
+```
+
+### 4) Based on your answer to the previous question, decide if it is appropriate to apply a transformation to your data. If no, explain why not. If yes, name the transformation applied and visualize the transformed distribution.
+
+##### **YES**, transformation is needed because data is right skewed. Below is the data after applying the filter and to select if transformation is needed even after the filteration or not.
+
+```{r fig.height=10, fig.width=10, warning=FALSE}
+# Create the base histogram plot
+base_plot <- ggplot(filtered_lead_time, aes(x = lead_time, fill = ..count..)) +
+  geom_density(aes(y = ..count..), alpha = 0.3, fill = "red", color = "black")+
+  geom_histogram(fill = "red", color = "black", alpha = 0.1) +
+  labs(x = "Lead Time", y = "Count") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Create the log scale plot
+log_plot <- base_plot +
+  scale_x_log10() +
+  labs(title = "Logarithmic Scale")
+
+# Create the square root scale plot
+sqrt_plot <- base_plot +
+  scale_x_sqrt() +
+  labs(title = "Square Root Scale")
+
+# Arrange the plots in a grid
+grid.arrange(base_plot, log_plot, sqrt_plot, ncol = 1)
+
+```
+
+##### After applying the filter the distribution is more balanced from earlier, but it is clear from above histograms that **Square rooted distribution** is more normal than the actual and log distribution.
+
+###### Creating new dataframe for square rooted values
+```{r}
+filtered_lead_time$sqrt_lead_time <- sqrt(filtered_lead_time$lead_time)
+
+# Save the transformed data to a new file
+write.csv(filtered_lead_time, "filtered_lead_time_sqrt.csv", row.names = FALSE)
+```
+
+```{r}
+filtered_lead_time_sqrt <- read.csv("C:\\Users\\solan\\OneDrive\\Desktop\\Work\\St.Clair_sem_1\\DAB501_basic_stats\\DAB501\\Project\\filtered_lead_time_sqrt.csv")
+```
+
+#### Distribution of data after transforming using SQRT.
+```{r fig.height=5, fig.width=10}
+# Create the histogram plot
+plot1 <- ggplot(filtered_lead_time_sqrt, aes(x = lead_time)) + 
+  geom_histogram(binwidth = 1, color = "black", fill = "pink") + 
+  labs(x = "Lead Time", y = "Frequency", title = "Distribution of Lead Time") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Create the boxplot
+plot2 <- ggplot(filtered_lead_time_sqrt, aes(y = lead_time)) +
+  geom_boxplot(color = "black", fill = "pink") +
+  labs(y = "Lead Time", title = "Distribution of Lead Time (Boxplot)")+
+  scale_y_continuous(breaks = scales::breaks_width(50)) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Combine the two plots
+plot1 + plot2
+```
+
+### 5) Choose and calculate an appropriate measure of central tendency (Mean, Median, and Mode).
+
+```{r}
+mean(filtered_lead_time_sqrt$lead_time)
+median(filtered_lead_time_sqrt$lead_time)
+mode(filtered_lead_time_sqrt$lead_time)
+table_mode_price <- table(filtered_lead_time_sqrt$lead_time)
+mode_price <- names(table_mode_price)[which.max(table_mode_price)]
+mode_price
+```
+
+##### we will choose **Mean** as our central tendency measure.
+
+### 6) Explain why you chose this as your measure of central tendency. Provide supporting evidence for your choice. 
+
+##### As we saw earlier that the dataset is right skewed, this means our mean is greater than the median, which is greater than the mode. and as we can see in above graphs that center point of our data destribution is also around 150 and mean being 77.2 make the mean the closest to the centroid of our destribution.
+
+
+### 7) Choose and calculate a measure of spread (SD, MAD or IQR) that is appropriate for your chosen measure of central tendency. Explain why you chose this as your measure of spread.
+
+```{r}
+mad(filtered_lead_time_sqrt$lead_time)
+sd(filtered_lead_time_sqrt$lead_time)
+IQR(filtered_lead_time_sqrt$lead_time)
+```
+
+##### Since we have opted for the mean as our measure of central tendency, it is recommended to use **SD (Standard Deviation)** as our measure of spread. This is because SD indicates how much the data varies from the mean, by measuring the average distance of each data point from the mean. Additionally, it is the smallest measure of spread, indicating that data points are generally closer to the mean compared to other measures.
+
+
+## Univariate Analysis: Catagorical Variable(market_segment_type)
+
+### 1) Create an appropriate plot to visualize the distribution of counts for this variable.
+
+```{r fig.height=5, fig.width=10, warning=FALSE}
+filtered_lead_time_segment <- filtered_lead_time_sqrt %>% 
+  mutate(grouped_segment_type = fct_lump(market_segment_type, n = 2, other_level = "Others"))
+
+# Calculate counts by the new grouping variable
+segment_count <- table(filtered_lead_time_segment$grouped_segment_type)
+
+# Create a bar chart of market segment proportions (pie)
+ggplot(data.frame(segment_count), aes(x = "", y = segment_count, fill = names(segment_count))) +
+  geom_bar(stat = "identity", width = 0.8, alpha = 0.8, color = "black", position = position_dodge(width = 0.5)) +
+  geom_text(aes(label = paste0(segment_count)), size = 8, position = position_dodge(width = 0.8), vjust = 0.5, hjust = 0.5) +
+  labs(title = "Distribution of the reservations over Market Types",
+       fill = "Market Segment Type",
+       x = "Market Segment Type",
+       y = "Count of reservation using the Market Type") +
+  scale_fill_discrete(labels=c("Offline" = "Offline", "Online" = "Online", "Others" = "Others = Corporate, Aviation and Complementary" ))+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.box = "horizontal",
+        legend.box.just = "center",
+        legend.title.align = 0.5,
+        legend.text.align = 0.5,
+        legend.margin = margin(5, 5, 5, 5))
+
+```
+
+### 2) Create an appropriate plot to visualize the distribution of proportions for this variable.
+
+```{r fig.height=5, fig.width=10}
+# Create the bar chart
+ggplot(data.frame(segment_count), aes(x = "", y = segment_count, fill = names(segment_count))) +
+  geom_bar(stat = "identity", width = 1, alpha = 0.8, color = "black") +
+  geom_text(aes(label = paste0(round(segment_count/sum(segment_count)*100), "%")), position = position_stack(vjust = 0.5)) +
+  labs(title = "Distribution of Types",
+       fill = "Market Segment Type") +
+  theme_void() +
+  coord_polar(theta = "y") +
+  scale_fill_discrete(labels=c("Offline" = "Offline", "Online" = "Online", "Others" = "Others = Corporate, Aviation and Complementary" ))+
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "right",
+        legend.box = "horizontal",
+        legend.box.background = element_rect(color = "black", size = 0.5),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 10))
+
+```
+
+### 3) Discuss any unusual observations for this variable?
+
+##### It is clear from above charts that most of the customers are booking from online and offline market segment types. Others are booked very less comparitively.
+
+
+### 4) Discuss if there are too few/too many unique values?
+
+##### No, there are enough unique values but distribution of the data is another thing.
+
+
+## Bivariate Analysis: both Continuous(lead time, arrival_date)
+
+### 1) Create an appropriate plot to visualize the relationship between the two variables.
+
+
+```{r fig.height=6, fig.width=10, warning=FALSE}
+ggplot(filtered_lead_time_segment, aes(x = lead_time, y = avg_price_per_room, fill = ..level..)) +
+  stat_density_2d(geom = "polygon") +
+  scale_fill_gradient(low = "pink", high = "#8B0000") +
+  labs(x = "Lead Time", y = "Average Price per Room", title = "Contour Plot of Lead Time and Average Price Per Room") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 18, hjust = 0.5, face = "bold", margin = margin(b = 10)),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold", margin = margin(t = 10)),
+        legend.position = "right",
+        legend.text = element_text(size = 12),
+        panel.grid.major = element_line(color = "#EAEAEA"),
+        panel.background = element_rect(fill = "#FDFDFD"))
+```
+
+### 2) Describe the form, direction, and strength of the observed relationship.
+
+##### It is clear from the above chart that the data is nonlinear distributed and has very weak realtionship with each other in positive direction as or correlation coefficient is 0.0009.
+
+
+```{r}
+cor(filtered_lead_time_segment$lead_time, filtered_lead_time_segment$avg_price_per_room)
+```
+
+### 3) Explain what this relationship means in the context of the data.
+
+##### One can conclude that there is no association between these two variables.
+
+### 4) Describe the variability that you observe in the plot and how that corresponds to the strength you calculated in #2 above.
+
+##### By examining the scatter plot, we can see that there is a considerable amount of variation in the data points, suggesting that the association between the two continuous variables is feeble. The points are distributed haphazardly across the graph without any apparent pattern or trend. The correlation coefficient, which measures the strength of the relationship, is also weak (0.0009), corroborating our finding that there is a weak connection between the two variables. As a result, the diversity in the scatter plot corresponds to the low strength of the identified relationship.
+
+
+## Bivariate Analysis: one Continuous and one Catagorical (lead_time, market_segment_type)
+
+### 1) Create an appropriate plot to visualize the relationship between the two variables.
+
+```{r fig.height=5, fig.width=10}
+# Filter lead time into percentage
+top_lead_time <- filtered_lead_time_segment %>%
+  group_by(grouped_segment_type) %>%
+  summarise(lead_time = sum(lead_time)) %>%
+  mutate(percentage_lead_time = lead_time/sum(lead_time)*100) %>%
+  arrange(desc(percentage_lead_time)) 
+
+ggplot(top_lead_time, aes(x = "", y = percentage_lead_time, fill = grouped_segment_type)) +
+  geom_bar(stat = "identity", width = 1, alpha = 0.8, color = "black") +
+  geom_text(aes(label = paste0(round(percentage_lead_time, 1), "%:  ", grouped_segment_type)), 
+            position = position_stack(vjust = 0.5), 
+            color = "black", size = 5) +
+  labs(title = "Distribution of Market segment Types over lead time",
+       fill = "Market Segment Type",
+       x = "Market Segment Type",
+       y = "Lead Time taken by reservation in Percentage") +
+  theme_void() +
+  scale_fill_discrete(labels=c( "Others" = "Others = Corporate, Aviation and Complementary" , "Offline" = "Offline", "Online" = "Online"))+
+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.box = "horizontal",
+        legend.box.just = "center",
+        legend.title.align = 0.5,
+        legend.text.align = 0.5,
+        legend.margin = margin(5, 5, 5, 5))
+
+
+```
+
+### 2) Describe the form, direction, and strength of the observed relationship.
+
+##### As there is one catagorical variable we can say that for online bookings just the percentage of reservations and the percentage of lead time taken by those reservations are almost same (67% and 66.4% respectively). On the other hand, for offline we can clearly see a 5% increase with the leadtime taken by the reservations. Lastly, for other market segments the lead time taken has decreased too 5% as well.
+
+### 3) Explain what this relationship means in the context of the data.
+
+##### The correaltion between these two variable is not possible to find as one is continuous and another is catagorical. But as we discussed earlier offline market segment type is taking the most lead time compared to other types.
+
+### 4) Describe the variability that you observe in the plot and how that corresponds to the strength you calculated in #2 above.
+
+##### It cannot be calculated without both being continuos.
+
+
+## Univariate Analysis: Continuous Variable(avg_price_per_room)
+
+### 1) Create an appropriate plot to visualize the distribution of counts for this variable.
+
+```{r fig.height=5, fig.width=10}
+# Create the histogram plot
+plot1 <- ggplot(Hotel_Reservations, aes(x = avg_price_per_room)) + 
+  geom_histogram(binwidth = 1, color = "brown", fill = "lightgreen") + 
+  labs(x = "Average Price per Room", y = "Frequency", title = "Distribution of Average Price per Room") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Create the violin plot
+plot2 <- ggplot(Hotel_Reservations, aes(x = 1, y = avg_price_per_room)) +
+  geom_violin(color = "brown", fill = "lightgreen") +
+  labs(x = "", y = "Average Price per Room", title = "Distribution of Average Price per Room (Violin Plot)")+
+  scale_x_continuous(breaks = NULL) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"), 
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+# Combine the two plots
+plot1 + plot2
+
+```
+### Question 2,3 and 4 will be the same answers. Because, in our dataset we only have 2 countinuous varaibles.
+
+## Univariate Analysis: Catagorical Variable(type_of_meal_plan)
+
+### 1) Create an appropriate plot to visualize the distribution of counts for this variable.
+
+
+### 2) Create an appropriate plot to visualize the distribution of proportions for this variable.
+
+```{r fig.height=5, fig.width=10}
+# Create a new data frame with the counts and proportions of meal plans
+meal_plan_counts <- Hotel_Reservations %>%
+  count(type_of_meal_plan) %>%
+  mutate(proportion = n/sum(n))
+
+# Create a bar chart of the meal plan proportions
+ggplot(meal_plan_counts, aes(x = type_of_meal_plan, y = n, fill = type_of_meal_plan)) +
+  geom_col() +
+  labs(title = "Count of Meal Plan Types",
+       x = "Meal Plan Type",
+       y = "Count") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal()
+
+```
+
+### 3) Discuss any unusual observations for this variable?
+
+##### It is clear from above charts that most of the customers are booking meal type 1 and meal type 3 has nearly 0 values.
+
+
+### 4) Discuss if there are too few/too many unique values?
+
+##### No, there are enough unique values but distribution of the data is another thing.
+
+
+## Bivariate Analysis: One Catagorical and One Continuous(avg_price_per_room, market_segment_type)
+
+### 1) Create an appropriate plot to visualize the relationship between the two variables.
+```{r fig.height=5, fig.width=10}
+ggplot(filtered_avg_price)+
+  geom_violin(aes(avg_price_per_room, as.factor(type_of_meal_plan), color = type_of_meal_plan, fill = type_of_meal_plan), alpha = 0.2)+
+  theme(axis.text.x = element_text())+
+  scale_x_continuous(breaks = scales::breaks_width(50))+
+  geom_vline(aes(xintercept=mean(lead_time)), color="black", linetype="dashed", size = 1)+
+  annotate(
+    "text",
+    x = 180, y = 3,
+    label = "The mean Price",
+    vjust = 1, size = 5, color = "black"
+  )+
+    annotate(
+    "curve",
+    x = 200, y = 2.5,
+    xend = 90, yend = 2.5,
+    arrow = arrow(length = unit(0.2, "cm"), type = "closed"),
+    color = "black"
+  )+
+  labs(
+    title = "Average Price per Room Vs. Meal Plan type",
+    x = "Average Price per Room",
+    y = "Meal Plan type"
+  )+
+  theme_minimal()
+
+```
+
+### 2) Describe the form, direction, and strength of the observed relationship.
+
+##### It is not possible to determine if the variable is increasing or not, as there is one categorical variable. However, based on the data presented in the graph, we can infer that customers have either booked meal plan 1, meal plan 2 or they havent selected any. Also, it is clear that bookings with meal plan 2 have more average price per room than another two types.
+
+
+### 3) Explain what this relationship means in the context of the data.
+
+##### One can conclude that there is no association between these two variables.
+
+### 4) Describe the variability that you observe in the plot and how that corresponds to the strength you calculated in #2 above.
+
+##### It cannot be calculated
+
+
+## Univariate Analysis: Catagorical Variable(arrival_month)
+
+
+### 1) Create an appropriate plot to visualize the distribution of counts for this variable.
+
+```{r fig.height=5, fig.width=10}
+ggplot(Hotel_Reservations, aes(x = arrival_month)) +
+  geom_bar(alpha = 0.8, fill = "pink") +
+  geom_text(stat = "count", aes(label = ..count..), vjust = 0.5, angle = 360) +
+  labs(title = "Distribution of Arrival counts per month",
+       x = "Arrival Month",
+       y = "Arrivals count") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(1, 12, by = 1)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10)) +
+  coord_flip()
+
+
+```
+
+### 2) Create an appropriate plot to visualize the distribution of proportions for this variable.
+
+
+```{r fig.height=5, fig.width=10}
+# Create a table of words by agency ID
+dates <- lapply(split(Hotel_Reservations$arrival_month, Hotel_Reservations$arrival_month), function(x) paste(x, collapse = " "))
+names(dates) <- NULL
+
+# Create word frequency table
+word_freq <- table(unlist(strsplit(tolower(unlist(dates)), "\\W+")))
+
+# Plot word cloud
+wordcloud(names(word_freq), freq = word_freq, scale = c(12, 0.1), min.freq = 1, random.order = FALSE, colors = brewer.pal(8, "Dark2"), 
+          max.words = 31, random.color = TRUE, rot.per = 0.3, 
+          font = 3, family = "sans", 
+          main = "Agency ID Word Cloud",
+          col.main = "steelblue")
+title("Agency ID Word Cloud", cex.main = 1.5)
+```
+
+
+### 3) Discuss any unusual observations for this variable?
+
+##### We can see that from 1st month to 10 month there's constant increase in bookings but then it drops for 11th and 12th month.
+
+### 4) Discuss if there are too few/too many unique values?
+
+##### No, there are enough unique values and they are distributed in an even manner.
+
+
+## Bivariate Analysis: one Continuous and one Catagorical (lead_time, booking_status)
+
+### 1) Create an appropriate plot to visualize the relationship between the two variables.
+
+```{r fig.height=5, fig.width=10}
+ggplot(filtered_lead_time_sqrt)+
+  geom_violin(aes(lead_time, as.factor(booking_status), color = booking_status, fill = booking_status), alpha = 0.2)+
+  theme(axis.text.x = element_text())+
+  scale_x_continuous(breaks = scales::breaks_width(50))+
+  geom_vline(aes(xintercept=mean(lead_time)), color="black", linetype="dashed", size = 1)+
+  annotate(
+    "text",
+    x = 250, y = 2.5,
+    label = "The mean Lead Time",
+    vjust = 1, size = 5, color = "black"
+  )+
+    annotate(
+    "curve",
+    x = 200, y = 2.5,
+    xend = 90, yend = 2.5,
+    arrow = arrow(length = unit(0.2, "cm"), type = "closed"),
+    color = "black"
+  )+
+  labs(
+    title = "Average Lead time Vs. Booking Status",
+    x = "Lead Time",
+    y = "Booking Status"
+  )+
+  theme_minimal()
+
+```
+
+### 2) Describe the form, direction, and strength of the observed relationship.
+
+##### The above graph clearly dipicts that for not canceled bookings lead time was fairly less while the canceled bookings took much lead time.
+
+### 3) Explain what this relationship means in the context of the data.
+
+##### The correaltion between these two variable is not possible to find as one is continuous and another is catagorical.
+
+### 4) Describe the variability that you observe in the plot and how that corresponds to the strength you calculated in #2 above.
+
+##### It cannot be calculated without both being continuos.
+
+
+#### Below is a bonus chart because we did not have three continuos variables.
+
+```{r fig.height=5, fig.width=10}
+plot_ly(filtered_avg_price, x = ~avg_price_per_room, y = ~lead_time, z = ~arrival_date, color = ~lead_time,
+        colors = c("#FDE725", "#B4DE2C", "#58A636", "#0C7C59", "#025949"), 
+        type = "scatter3d", mode = "markers") %>%
+  layout(scene = list(xaxis = list(title = "Average Price per Room", showbackground = T, backgroundcolor = "rgb(230, 230,230)", gridcolor = "rgb(255, 255, 255)", zerolinecolor = "rgb(255, 255, 255)"),
+                      
+                       yaxis = list(title = "Lead Time", showbackground = T, backgroundcolor = "rgb(230, 230,230)", gridcolor = "rgb(255, 255, 255)", zerolinecolor = "rgb(255, 255, 255)"),
+                      
+                       zaxis = list(title = "Arrival Date", showbackground = T, backgroundcolor = "rgb(230, 230,230)", gridcolor = "rgb(255, 255, 255)", zerolinecolor = "rgb(255, 255, 255)")),
+         title = "Scatter Plot of Average Price, Lead Time, and Arrival Date") 
+
+```
+##### Refrences
+1. https://www.geeksforgeeks.org/<br>
+2. https://www.datanovia.com/en/blog/top-r-color-palettes-to-know-for-great-data-visualization/<br>
+3. https://ggplot2-book.org/<br>
+4. file:///C:/Users/solan/OneDrive/Desktop/Work/St.Clair_sem_1/DAB501_basic_stats/DAB501/Project/data-visualization-1.pdf<br>
+5. https://r-graphics.org/recipe-axes-polar<br>
+6. https://mattherman.info/blog/fix-facet-width/<br>
+7. https://campus.datacamp.com/courses/introduction-to-data-visualization-with-ggplot2/themes?ex=12<br>
+8. https://www.datanovia.com/en/blog/ggplot-legend-title-position-and-labels/<br>
+9. http://www.sthda.com/english/wiki/ggplot2-axis-ticks-a-guide-to-customize-tick-marks-and-labels<br>
+10. https://plotly-r.com/animating-views.html<br>
+11. https://plotly.com/r/figure-labels/<br>
+12. https://www.youtube.com/watch?v=qnw1xDnt_Ec<br>
+13. https://www.youtube.com/watch?v=rBp3eYHrsfo<br>
+14. https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf<br>
+15. https://www.youtube.com/watch?v=uFUM9M97Me8<br>
+16. https://topepo.github.io/caret/<br>
+17. https://rmarkdown.rstudio.com/lesson-7.html<br>
+18. https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html<br>
+19. https://www.analyticsvidhya.com/blog/2016/03/practical-guide-deal-imbalanced-classification-problems/<br>
+20. https://www.youtube.com/watch?v=g0TfqTF127M
